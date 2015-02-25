@@ -1,13 +1,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-struct stock
-{
-	char name;
-	int value;
-};
-
-
 
 int main(int argc, char const *argv[])
 {

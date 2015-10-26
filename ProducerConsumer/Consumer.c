@@ -18,19 +18,31 @@ int c_shmid;
 
 struct buf_element *c_item;
 
+static FILE *out;
+
 int main()
 {
+	int bytesRead, totalBytesRead;
+
+	bytesRead = 0;
+	totalBytesRead = 0;
+	out = fopen("outputfile.txt", "w");
+	
 	init_all();
 
-	int i;
-	for (i = 0; i < 10; i++) {
-		sem_wait(c_sem_N_id);
-		sem_wait(c_sem_S_id);
-		readItem();
-		sem_signal(c_sem_S_id);
-		sem_signal(c_sem_E_id);
-		sleep(1);
+	while (bytesRead <= 128) {
+
+		bytesRead = readItem();
+		
+		if (bytesRead <= 128) 
+			totalBytesRead = totalBytesRead + bytesRead;
+		//sleep(1);
 	}
+
+	if (bytesRead == totalBytesRead)
+		printf("It matches! Total characters: %d\n", totalBytesRead);
+	else
+		printf("Total bytes read does not match the total bytes written.\nRead: %d\nWritten: %d\n", totalBytesRead, bytesRead);
 
 	clean_all();
 
@@ -40,14 +52,24 @@ int main()
 static int readItem(void)
 {
 	struct buf_element temp;
+
+	sem_wait(c_sem_N_id);
+	//sem_wait(c_sem_S_id);
+
 	temp = c_item[out_item];
 
-	printf("%s", temp.text);
-	printf("Length: %d\n", 	temp.byte_count);
+	if (strcmp(temp.text, "EOF"))
+		fputs(temp.text, out);
+	
+	if (out_item == 99)
+		out_item = 0;
+	else
+		out_item++;
 
-	out_item++;
+	//sem_signal(c_sem_S_id);
+	sem_signal(c_sem_E_id);
 
-	return 1;
+	return temp.byte_count;
 }
 
 static int init_all(void)
@@ -97,6 +119,9 @@ static int clean_all(void)
 {
 	// Cleaning up shared memory....		
 	shmdt(c_item);
+
+	// Close file descriptor...
+	fclose(out);
 
 	return 1;
 }

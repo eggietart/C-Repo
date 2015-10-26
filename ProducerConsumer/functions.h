@@ -14,27 +14,19 @@ struct buf_element {
 	int		byte_count;
 };
 
-// Shared Memory Functions
-int init_sharedMemory(void);
-int del_sharedMemory(void);
-
 // Variables...
-int sem_S_id;	// Semaphore S - Buffer
-int sem_N_id;	// Semaphore N - Produced Items
-int sem_E_id;	// Semaphore E - Empty Item
 int nBuffers;
 int in_item;
 int out_item;
 
-int shmid;		// Shared Memory Id
-
-struct buf_element *item;
-//void *objShm;
-char* objShm;
+// Shared Memory Functions
+int allocate_sharedMemory(struct buf_element* item);
+struct buf_element* attach_sharedMemory(int shmid);
+int del_sharedMemory(struct buf_element* item, int shmid);
 
 // Semaphores Functions
-int init_semaphores(void);
-int remove_semaphores(void);
+int init_sem(key_t key, int value);
+void del_semvalue(int sem_id);
 
 int sem_wait(int sem_id);
 int sem_signal(int sem_id);

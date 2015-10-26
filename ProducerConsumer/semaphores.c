@@ -8,7 +8,6 @@
 #include <sys/sem.h>
 
 static int set_semvalue(int sem_id, int value);
-static void del_semvalue(int sem_id);
 
 // #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 //     /* union semun is defined by including <sys/sem.h> */	
@@ -29,7 +28,7 @@ int init_sem(key_t key, int value)
     sem_id = semget((key_t)key, 1, 0666| IPC_CREAT);
 
     if(!set_semvalue(sem_id, value)) {
-        fprintf(stderr, "Semaphore S could not be initialized.\n");
+        fprintf(stderr, "Semaphore could not be initialized.\n");
         exit(EXIT_FAILURE);
     }
     printf("Semaphore created -> %d.\n", sem_id);
@@ -67,24 +66,6 @@ int sem_signal(int sem_id)
     return(1);
 }
 
-int init_semaphores(void)
-{
-    sem_S_id = init_sem((key_t)8000, 1);
-    sem_N_id = init_sem((key_t)8001, 0);
-    sem_E_id = init_sem((key_t)8002, nBuffers);
-
-    return 1;
-}
-
-int remove_semaphores(void)
-{
-    del_semvalue(sem_S_id);
-    del_semvalue(sem_N_id);
-    del_semvalue(sem_E_id);
-
-    return 1;
-}
-
 // Function for initializing the semaphores...
 static int set_semvalue(int sem_id, int value)
 {
@@ -96,7 +77,7 @@ static int set_semvalue(int sem_id, int value)
 }
 
 // Function for releasing the semaphores...
-static void del_semvalue(int sem_id)
+void del_semvalue(int sem_id)
 {
     union semun sem_union;
     

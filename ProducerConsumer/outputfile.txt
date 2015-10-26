@@ -2390,4 +2390,101 @@ Semaphore created -> 4063254.
 Semaphore created -> 3997719.
 Semaphore created -> 3932184.
 Memory attached at D3D2000
+owong:ProducerConsumer awong$ ./main
+Semaphore created -> 4128790.
+Semaphore created -> 4063255.
+Semaphore created -> 3997720.
+Memory attached at E28E000
+owong:ProducerConsumer awong$ gcc main.c semaphores.c shmem.c -o main
+owong:ProducerConsumer awong$ ./main
+Semaphore created -> 4194326.
+Semaphore created -> 4128791.
+Semaphore created -> 4063256.
+Memory attached at 7739000
+owong:ProducerConsumer awong$ ./main
+Semaphore created -> 4259862.
+Semaphore created -> 4194327.
+Semaphore created -> 4128792.
+Memory attached at 7B45000
+owong:ProducerConsumer awong$ gcc main.c semaphores.c shmem.c -o main
+In file included from main.c:11:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(void);
+    ^
+main.c:93:9: warning: implicit declaration of function 'attach_sharedMemory' is invalid in C99
+      [-Wimplicit-function-declaration]
+        item = attach_sharedMemory(shmid);
+               ^
+main.c:93:7: warning: incompatible integer to pointer conversion assigning to 'struct buf_element *' from 'int'
+      [-Wint-conversion]
+        item = attach_sharedMemory(shmid);
+             ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+2 warnings and 1 error generated.
+In file included from semaphores.c:1:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(void);
+    ^
+1 error generated.
+In file included from shmem.c:1:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(void);
+    ^
+shmem.c:15:38: error: use of undeclared identifier 'item'
+        shmid = shmget((key_t)1234, sizeof(*item) * nBuffers, 0666 | IPC_CREAT);
+                                            ^
+2 errors generated.
+owong:ProducerConsumer awong$ gcc main.c semaphores.c shmem.c -o main
+In file included from main.c:11:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(struct buf_element* item);
+    ^
+main.c:93:9: warning: implicit declaration of function 'attach_sharedMemory' is invalid in C99
+      [-Wimplicit-function-declaration]
+        item = attach_sharedMemory(shmid);
+               ^
+main.c:93:7: warning: incompatible integer to pointer conversion assigning to 'struct buf_element *' from 'int'
+      [-Wint-conversion]
+        item = attach_sharedMemory(shmid);
+             ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+2 warnings and 1 error generated.
+In file included from semaphores.c:1:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(struct buf_element* item);
+    ^
+1 error generated.
+In file included from shmem.c:1:
+./functions.h:19:21: error: conflicting types for 'allocate_sharedMemory'
+struct buf_element* allocate_sharedMemory(int shmid);
+                    ^
+./functions.h:18:5: note: previous declaration is here
+int allocate_sharedMemory(struct buf_element* item);
+    ^
+1 error generated.
+owong:ProducerConsumer awong$ gcc main.c semaphores.c shmem.c -o main
+owong:ProducerConsumer awong$ ./main
+Semaphore created -> 4325398.
+Semaphore created -> 4259863.
+Semaphore created -> 4194328.
+Memory attached at BA34000
+owong:ProducerConsumer awong$ ./main
+Semaphore created -> 4390934.
+Semaphore created -> 4325399.
+Semaphore created -> 4259864.
+Memory attached at 198C000
+^C
 owong:ProducerConsumer awong$ 

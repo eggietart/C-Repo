@@ -7,9 +7,11 @@
 
 #include <sys/shm.h>
 
-int init_sharedMemory(void) {
+int allocate_sharedMemory(struct buf_element* item) {
 
 	// Allocating shared memory for the finite circular buffer
+	int shmid;
+
 	shmid = shmget((key_t)1234, sizeof(*item) * nBuffers, 0666 | IPC_CREAT);
 
 	if (shmid == 1) {
@@ -17,8 +19,14 @@ int init_sharedMemory(void) {
 		exit(EXIT_FAILURE);
 	}
 	
+	return shmid;
+}
+
+struct buf_element* attach_sharedMemory(int shmid) {
+	
 	// Attach shared memory to this process' address space
-	//objShm = (char*) shmat(shmid, (void *)0, 0);
+	struct buf_element *item;
+
 	item = (struct buf_element*) shmat(shmid, (void *)0, 0);
 
 	if (item == (void *)-1) {
@@ -28,10 +36,10 @@ int init_sharedMemory(void) {
 
 	printf("Memory attached at %X\n", (int)item);
 	
-	return 1;
+	return item;
 }
 
-int del_sharedMemory(void) {
+int del_sharedMemory(struct buf_element* item, int shmid) {
 
 	// Release shared memory and delete it
     if (shmdt(item) == -1) {

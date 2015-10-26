@@ -13,10 +13,13 @@ static int readItem(void);
 static int init_all(void);
 static int clean_all(void);
 
-int c_sem_S_id, c_sem_N_id, c_sem_E_id;
-int c_shmid;
+static int c_sem_S_id;
+static int c_sem_N_id;
+static int c_sem_E_id;
 
-struct buf_element *c_item;
+static int c_shmid;
+
+static struct buf_element *c_item;
 
 static FILE *out;
 
@@ -96,21 +99,8 @@ static int init_all(void)
         exit(EXIT_FAILURE);
     }
 
-    c_shmid = shmget((key_t)1234, sizeof(*item) * nBuffers, 0666 | IPC_CREAT);
-
-	if (c_shmid == 1) {
-		fprintf(stderr, "Shared memory could not be allocated.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	c_item = (struct buf_element*) shmat(c_shmid, (void *)0, 0);
-
-	if (c_item == (void *)-1) {
-		fprintf(stderr, "Shared memory could not be allocated.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	printf("Memory attached at %X\n", (int)c_item);
+    c_shmid = allocate_sharedMemory(c_item);
+	c_item = attach_sharedMemory(c_shmid);
 
 	return 1;
 }

@@ -10,7 +10,7 @@
 int init_sharedMemory(void) {
 
 	// Allocating shared memory for the finite circular buffer
-	shmid = shmget((key_t)1234, sizeof(struct buf_element) * 100, 0666 | IPC_CREAT);
+	shmid = shmget((key_t)1234, sizeof(*item) * nBuffers, 0666 | IPC_CREAT);
 
 	if (shmid == 1) {
 		fprintf(stderr, "Shared memory could not be allocated.\n");
@@ -18,14 +18,15 @@ int init_sharedMemory(void) {
 	}
 	
 	// Attach shared memory to this process' address space
-	objShm = (char*) shmat(shmid, (void *)0, 0);
+	//objShm = (char*) shmat(shmid, (void *)0, 0);
+	item = (struct buf_element*) shmat(shmid, (void *)0, 0);
 
-	if (objShm == (void *)-1) {
+	if (item == (void *)-1) {
 		fprintf(stderr, "Shared memory could not be allocated.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Memory attached at %X\n", (int)objShm);
+	printf("Memory attached at %X\n", (int)item);
 	
 	return 1;
 }

@@ -40,6 +40,8 @@ struct buf_element {
 
 int main()
 {
+	nBuffers = 100;
+	
 	// Initializing semaphores and shared memory....		
 	init_semaphores();
 	init_sharedMemory();

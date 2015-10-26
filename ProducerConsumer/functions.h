@@ -22,9 +22,11 @@ int del_sharedMemory(void);
 int sem_S_id;	// Semaphore S - Buffer
 int sem_N_id;	// Semaphore N - Produced Items
 int sem_E_id;	// Semaphore E - Empty Item
+int nBuffers;
 
 int shmid;		// Shared Memory Id
 
+struct buf_element *item;
 //void *objShm;
 char* objShm;
 

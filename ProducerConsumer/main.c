@@ -10,51 +10,43 @@
 
 #include "functions.h"
 
-void append(void);
-/*
-#define TEXT_SIZE 128;
-
-// Functions...
-static int set_semvalue(int sem_id, int value);
-static void del_semvalue(int sem_id);
-static int sem_wait(int sem_id);
-static int sem_signal(int sem_id);
-
-static int init_semphores(void);
-static int init_sharedMemory(void);
-static int del_sharedMemory(void);
-
-static int sem_S_id;	// Semaphore S - Buffer
-static int sem_N_id;	// Semaphore N - Produced Items
-static int sem_E_id;	// Semaphore E - Empty Item
-
-static int shmid;		// Shared Memory Id
-
-static void *shared_memory = (void *)0;
-
-struct buf_element {
-	char 	text[128];
-	int		byte_count;
-};
-*/
+// Internal Functions
+int writeItem(void);
 
 int main()
 {
+	// Variable initialization
 	nBuffers = 100;
+	in_item = 0;
+	out_item = 0;
+
 	
 	// Initializing semaphores and shared memory....		
 	init_semaphores();
 	init_sharedMemory();
 
-	sem_wait(sem_E_id);
-	sem_wait(sem_S_id);
-
-	sem_signal(sem_S_id);
-	sem_signal(sem_N_id);
-
+	int i;
+	for (i = 0; i < 10; i++) {
+		sem_wait(sem_E_id);
+		sem_wait(sem_S_id);
+		writeItem();
+		sem_signal(sem_S_id);
+		sem_signal(sem_N_id);
+		//sleep(10);
+	}
+	sleep(20);
 	// Cleaning up semaphores and shared memory....		
 	remove_semaphores();
 	del_sharedMemory();
 
     exit(EXIT_SUCCESS);
+}
+
+int writeItem(void)
+{
+	strcpy(item[in_item].text, "some text\n");
+	item[in_item].byte_count = 10;
+	in_item++;
+	
+	return 1;
 }

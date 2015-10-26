@@ -23,6 +23,8 @@ int sem_S_id;	// Semaphore S - Buffer
 int sem_N_id;	// Semaphore N - Produced Items
 int sem_E_id;	// Semaphore E - Empty Item
 int nBuffers;
+int in_item;
+int out_item;
 
 int shmid;		// Shared Memory Id
 

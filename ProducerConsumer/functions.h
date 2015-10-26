@@ -25,7 +25,8 @@ int sem_E_id;	// Semaphore E - Empty Item
 
 int shmid;		// Shared Memory Id
 
-void *objShm;
+//void *objShm;
+char* objShm;
 
 // Semaphores Functions
 int init_semaphores(void);

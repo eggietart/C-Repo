@@ -18,7 +18,7 @@ int init_sharedMemory(void) {
 	}
 	
 	// Attach shared memory to this process' address space
-	objShm = shmat(shmid, (void *)0, 0);
+	objShm = (char*) shmat(shmid, (void *)0, 0);
 
 	if (objShm == (void *)-1) {
 		fprintf(stderr, "Shared memory could not be allocated.\n");

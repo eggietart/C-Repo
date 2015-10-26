@@ -1,3 +1,5 @@
+// Possibly the Producer class...
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,6 +9,8 @@
 #include <sys/shm.h>
 
 #include "functions.h"
+
+void append(void);
 /*
 #define TEXT_SIZE 128;
 
@@ -39,6 +43,12 @@ int main()
 	// Initializing semaphores and shared memory....		
 	init_semaphores();
 	init_sharedMemory();
+
+	sem_wait(sem_E_id);
+	sem_wait(sem_S_id);
+
+	sem_signal(sem_S_id);
+	sem_signal(sem_N_id);
 
 	// Cleaning up semaphores and shared memory....		
 	remove_semaphores();

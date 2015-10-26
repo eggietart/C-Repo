@@ -34,7 +34,7 @@ int init_sharedMemory(void) {
 int del_sharedMemory(void) {
 
 	// Release shared memory and delete it
-    if (shmdt(objShm) == -1) {
+    if (shmdt(item) == -1) {
         fprintf(stderr, "Shared memory could not be released.\n");
         exit(EXIT_FAILURE);
     }

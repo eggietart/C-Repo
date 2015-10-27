@@ -43,7 +43,7 @@ int sem_wait(int sem_id)
     
     sem_b.sem_num = 0;
     sem_b.sem_op = -1; /* P() */
-    sem_b.sem_flg = 0;
+    sem_b.sem_flg = SEM_UNDO;
     if (semop(sem_id, &sem_b, 1) == -1) {
         fprintf(stderr, "Semaphore wait call failed.\n");
         return(0);
@@ -58,7 +58,7 @@ int sem_signal(int sem_id)
     
     sem_b.sem_num = 0;
     sem_b.sem_op = 1; /* V() */
-    sem_b.sem_flg = 0;
+    sem_b.sem_flg = SEM_UNDO;
     if (semop(sem_id, &sem_b, 1) == -1) {
         fprintf(stderr, "Semaphore signal call failed.\n");
         return(0);

@@ -51,12 +51,12 @@ int main()
 
 		writeItem(str, strlen(str));
 		totalBytesRead = totalBytesRead + strlen(str);
-		//sleep(1);
+		usleep(100);
 	}
 
 	writeItem("EOF\0", totalBytesRead);
 
-	//sleep(20);
+	sleep(20);
 	clean_all();
 
     exit(EXIT_SUCCESS);
@@ -65,8 +65,8 @@ int main()
 static int writeItem(char text[], int count)
 {
 	sem_wait(sem_E_id);
-	sem_wait(sem_S_id);
-	printf("%d\n", in_item);
+	//sem_wait(sem_S_id);
+	
 	strcpy(item[in_item].text, text);
 	item[in_item].byte_count = count;
 	
@@ -75,7 +75,7 @@ static int writeItem(char text[], int count)
 	else
 		in_item++;
 
-	sem_signal(sem_S_id);
+	//sem_signal(sem_S_id);
 	sem_signal(sem_N_id);
 	
 	return 1;

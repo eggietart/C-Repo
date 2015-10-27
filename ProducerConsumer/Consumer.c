@@ -26,10 +26,22 @@ static FILE *out;
 int main()
 {
 	int bytesRead, totalBytesRead;
-
+	
+	char str_pid[16];
+	char out_name[256];
+	
 	bytesRead = 0;
 	totalBytesRead = 0;
-	out = fopen("outputfile.txt", "w");
+
+	// Individual output files are created for each consumer alive
+	sprintf(str_pid, "%d", getpid());
+
+	strcpy(out_name, "outputfile");
+	strcat(out_name, "-");
+	strcat(out_name, str_pid);
+	strcat(out_name, ".txt");
+
+	out = fopen(out_name, "w");
 	
 	init_all();
 
@@ -39,7 +51,7 @@ int main()
 		
 		if (bytesRead <= 128) 
 			totalBytesRead = totalBytesRead + bytesRead;
-		//sleep(1);
+		//usleep(500000);
 	}
 
 	if (bytesRead == totalBytesRead)
@@ -57,10 +69,10 @@ static int readItem(void)
 	struct buf_element temp;
 
 	sem_wait(c_sem_N_id);
-	//sem_wait(c_sem_S_id);
-
+	sem_wait(c_sem_S_id);
+	
 	temp = c_item[out_item];
-
+	printf("%d\n", out_item);
 	if (strcmp(temp.text, "EOF"))
 		fputs(temp.text, out);
 	
@@ -69,7 +81,7 @@ static int readItem(void)
 	else
 		out_item++;
 
-	//sem_signal(c_sem_S_id);
+	sem_signal(c_sem_S_id);
 	sem_signal(c_sem_E_id);
 
 	return temp.byte_count;

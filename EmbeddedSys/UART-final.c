@@ -9,6 +9,7 @@ void GPIOF_Handler(void) {
 	GPIOF -> ICR |= (0x1UL << 4); // Clear interrupt flag
 	NVIC -> ICER[0] = (1UL << 30); // Clear pending bit for GPIOF in NVIC
 	__set_PRIMASK(1);
+	
 	b_buf = get_buffer();
 	if (b_buf != NULL) {
 		for (c = pressed_str, j = 0; *c != '\0'; c++, j++) {
@@ -17,11 +18,8 @@ void GPIOF_Handler(void) {
 		Tx_message((char *)b_buf);
 		release_buffer(b_buf);
 	}
-	else {
-		// Turn on the LED.
-		GPIOF->DATA |=  0x1UL << 1;
-		run_status = 0;
-	}
+	else 
+		notify_full_buffer();
 	__set_PRIMASK(0);
 
 	// Enable GPIOF Interrupt again
@@ -34,6 +32,7 @@ void UART0_Handler(void) {
 	struct buffer *a_buf;
 	unsigned char * c;
 	__set_PRIMASK(1);
+	
 	if (UART0 -> RIS & (0x1UL << 6)) {
 		// Rx Timeout Interrupt
 		while ((UART0 -> FR & UART_FR_RXFE) == 0) {
@@ -55,29 +54,19 @@ void UART0_Handler(void) {
 						rx_in_counter++;
 						rx_in_counter = rx_in_counter % 10;
 					}
-					else {
-						// Turn on the LED.
-						GPIOF->DATA |= 0x1UL << 1;
-						run_status = 0;
-					}
+					else 
+						notify_full_buffer();
 				}
 
-				// Empty out Rx Buffer...
-				for (j = 0; j < BUF_SIZE; j++) {
-					rx_buffer[j] = '\0';
-				}
+				empty_buffer();
 				rx_count = 0;
 			}
 			else {
 				rx_count++;
 				rx_count = rx_count % BUF_SIZE;
 
-				if (rx_count == 0) {
-					// Empty out Rx Buffer...
-					for (j = 0; j < BUF_SIZE; j++) {
-						rx_buffer[j] = '\0';
-					}
-				}
+				if (rx_count == 0)
+					empty_buffer();
 			}
 		}
 	}
@@ -96,6 +85,7 @@ void TIMER1A_Handler (void){
 	NVIC -> ICPR[0] = 1UL << 21; // Clear Pending Bit
 
 	__set_PRIMASK(1);
+	
 	if (Rx_message() != NULL) {
 		Tx_message((char *)Rx_message());
 		releaseRxBufPool(Rx_message());
@@ -127,7 +117,6 @@ void UART_Init(void){
 	
 	UART0 -> IM = (0x1UL << 6);	// Set Interrupt Masks for both Tx/Rx
 	UART0 -> ICR |= (0x1UL << 6);	// Clear Interrupt Status Bits
-
 	UART0 -> CTL |= UART_CTL_UARTEN;         // enable UART	
 	
 	// Setup for UART0 interrupt (Interrupt No. 5)
@@ -186,11 +175,19 @@ void periodic_timer_Init(void) {
 	TIMER1 ->CTL |= (0x1UL << 0);		// Enable Timer1A
 }
 
+// Empties rx_buffer[] so its clean for next reading...
+void empty_buffer(void) {
+	// Empty out Rx Buffer...
+	for (j = 0; j < BUF_SIZE; j++) {
+		rx_buffer[j] = '\0';
+	}
+}
+
 // Displays the current time
 void display_current_time(void) {
 	
-	char *c;
-	char current_time_str[8];
+	unsigned char *c;
+	unsigned char current_time_str[8];
 	uint32_t remainder;
 	struct buffer *a_buf;
 
@@ -212,15 +209,11 @@ void display_current_time(void) {
 			for (c = current_time_str, j = 0; j < 8; c++, j++) {
 				a_buf->text[j] = *c;
 			}
-			a_buf->isUsed = 1;
 			Tx_message((char *)a_buf);
 			release_buffer(a_buf);
 		}
-		else {
-			// Turn on the LED.
-			GPIOF->DATA |= 0x1UL << 1;
-			run_status = 0;
-		}
+		else 
+			notify_full_buffer();
 	}
 
 	second++;
@@ -234,6 +227,11 @@ void display_current_time(void) {
 		if (remainder == 0) {
 			minute = 0;
 			hour++;
+
+			remainder = hour % 60;
+		
+			if (remainder == 0)
+				hour = 0;
 		}
 	}
 }
@@ -289,7 +287,7 @@ unsigned char* validate_Rx_Msg(void) {
 		
 		// Turn on the LED.
 		GPIOF->DATA |= 0x1UL << 3;
-		for(j=0;j<0xffff;j++);
+		for (j = 0; j < 0xFFFF; j++);
 		GPIOF->DATA &= ~(0x1UL << 3);
 		run_status = 0;
 		return rx_buffer;
@@ -365,6 +363,13 @@ void release_buffer(struct buffer * a_buffer) {
 	for (index = 0; index < BUF_SIZE; index++) {
 		a_buffer->text[index] = '\0';
 	}
+}
+
+// No buffer in the pool is avaiable...
+void notify_full_buffer(void) {
+	// Turn on the Red LED.
+	GPIOF->DATA |= 0x1UL << 1;
+	run_status = 0;
 }
 
 int main(void)

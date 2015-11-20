@@ -43,6 +43,8 @@ void periodic_timer_Init(void);
 
 void display_current_time(void);
 unsigned char* validate_Rx_Msg(void);
+void empty_buffer(void);
+//void copy_string(unsigned char *src, unsigned char *dest);
 void Tx_message(char* msg_buffer);
 struct buffer* Rx_message(void);
 
@@ -50,6 +52,7 @@ struct buffer* Rx_message(void);
 void buffer_Init(void);
 struct buffer* get_buffer(void);
 void release_buffer(struct buffer * a_buffer);
+void notify_full_buffer(void);
 struct buffer* addRxBufPool(struct buffer * a_buffer);
 struct buffer* releaseRxBufPool(struct buffer * a_buffer);
 

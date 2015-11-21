@@ -16,14 +16,15 @@ uint32_t display_time = 1;
 uint32_t run_status = 1;
 double speed = 1;	// Default to 1 => 1 sec./time report
 
-char pressed_str[] = "Button Pressed";
+unsigned char pressed_str[] = "Button Pressed";
+unsigned char *c;
 
 // Variables for buffer management...
 unsigned char rx_buffer[BUF_SIZE];
 uint32_t rx_count = 0;
 uint32_t rx_in_counter = 0;
 uint32_t rx_out_counter = 0;
-uint32_t j;
+uint32_t itr;
 
 struct buffer buf[NUM_BUFS];
 struct buffer *rx_pool_ptr[NUM_BUFS];
@@ -45,7 +46,7 @@ void display_current_time(void);
 unsigned char* validate_Rx_Msg(void);
 void empty_buffer(void);
 //void copy_string(unsigned char *src, unsigned char *dest);
-void Tx_message(char* msg_buffer);
+void Tx_message(unsigned char* msg_buffer);
 struct buffer* Rx_message(void);
 
 // Buffer Manager Functions

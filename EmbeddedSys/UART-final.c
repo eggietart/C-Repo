@@ -4,7 +4,6 @@
 void GPIOF_Handler(void) {
 	
 	struct buffer *b_buf;
-	char *c;
 	
 	GPIOF -> ICR |= (0x1UL << 4); // Clear interrupt flag
 	NVIC -> ICER[0] = (1UL << 30); // Clear pending bit for GPIOF in NVIC
@@ -12,10 +11,10 @@ void GPIOF_Handler(void) {
 	
 	b_buf = get_buffer();
 	if (b_buf != NULL) {
-		for (c = pressed_str, j = 0; *c != '\0'; c++, j++) {
-			b_buf->text[j] = *c;
+		for (c = pressed_str, itr = 0; *c != '\0'; c++, itr++) {
+			b_buf->text[itr] = *c;
 		}
-		Tx_message((char *)b_buf);
+		Tx_message((unsigned char *)b_buf);
 		release_buffer(b_buf);
 	}
 	else 
@@ -30,7 +29,6 @@ void GPIOF_Handler(void) {
 void UART0_Handler(void) {
 	
 	struct buffer *a_buf;
-	unsigned char * c;
 	__set_PRIMASK(1);
 	
 	if (UART0 -> RIS & (0x1UL << 6)) {
@@ -47,12 +45,11 @@ void UART0_Handler(void) {
 					
 					if (a_buf != NULL) {
 						
-						for (c = rx_buffer, j = 0; *c != '\0'; c++, j++) {
-							a_buf->text[j] = *c;
+						for (c = rx_buffer, itr = 0; *c != '\0'; c++, itr++) {
+							a_buf->text[itr] = *c;
 						}
 						addRxBufPool(a_buf);
-						rx_in_counter++;
-						rx_in_counter = rx_in_counter % 10;
+						rx_in_counter = (rx_in_counter + 1) % 10;
 					}
 					else 
 						notify_full_buffer();
@@ -62,8 +59,7 @@ void UART0_Handler(void) {
 				rx_count = 0;
 			}
 			else {
-				rx_count++;
-				rx_count = rx_count % BUF_SIZE;
+				rx_count = (rx_count + 1) % BUF_SIZE;
 
 				if (rx_count == 0)
 					empty_buffer();
@@ -87,10 +83,9 @@ void TIMER1A_Handler (void){
 	__set_PRIMASK(1);
 	
 	if (Rx_message() != NULL) {
-		Tx_message((char *)Rx_message());
+		Tx_message((unsigned char *)Rx_message());
 		releaseRxBufPool(Rx_message());
-		rx_out_counter++;
-		rx_out_counter = rx_out_counter % 10;
+		rx_out_counter = (rx_out_counter + 1) % 10;
 	}
 
 	display_current_time();
@@ -150,8 +145,7 @@ void led_Init(void) {
 }
 
 // Set up periodic timer and to cause an interrupt for every
-// time-out event...
-// Default: 1 second
+// time-out event (1 sec.)...
 void periodic_timer_Init(void) {
 	// Disable Interrupt at NVIC for Timer1A
 	NVIC -> ICER[0] = (1UL << 21);
@@ -178,17 +172,15 @@ void periodic_timer_Init(void) {
 // Empties rx_buffer[] so its clean for next reading...
 void empty_buffer(void) {
 	// Empty out Rx Buffer...
-	for (j = 0; j < BUF_SIZE; j++) {
-		rx_buffer[j] = '\0';
+	for (itr = 0; itr < BUF_SIZE; itr++) {
+		rx_buffer[itr] = '\0';
 	}
 }
 
 // Displays the current time
 void display_current_time(void) {
 	
-	unsigned char *c;
 	unsigned char current_time_str[8];
-	uint32_t remainder;
 	struct buffer *a_buf;
 
 	// Formatting HH:MM:SS time format for sending...
@@ -206,40 +198,29 @@ void display_current_time(void) {
 				
 		if (a_buf != NULL) {
 			
-			for (c = current_time_str, j = 0; j < 8; c++, j++) {
-				a_buf->text[j] = *c;
+			for (c = current_time_str, itr = 0; itr < 8; c++, itr++) {
+				a_buf->text[itr] = *c;
 			}
-			Tx_message((char *)a_buf);
+			Tx_message((unsigned char *)a_buf);
 			release_buffer(a_buf);
 		}
 		else 
 			notify_full_buffer();
 	}
 
-	second++;
-	remainder = second % 60;
+	second = (second + 1) % 60;
 	
-	if (remainder == 0) {
-		second = 0;
-		minute++;
-		remainder = minute % 60;
+	if (second == 0) {
+		minute = (minute + 1) % 60;
 		
-		if (remainder == 0) {
-			minute = 0;
-			hour++;
-
-			remainder = hour % 60;
-		
-			if (remainder == 0)
-				hour = 0;
-		}
+		if (minute == 0)
+			hour = (hour + 1) % 60;
 	}
 }
 
 // Accept then msg for transmitting
-void Tx_message(char* msg_buffer) {
+void Tx_message(unsigned char* msg_buffer) {
 
-	char * c;
 	for (c = msg_buffer; *c != '\0'; c++) {
 		UART0 -> DR = *c;
 	}
@@ -248,8 +229,6 @@ void Tx_message(char* msg_buffer) {
 }
 
 struct buffer* Rx_message(void) {
-
-	uint32_t itr;
 
 	for (itr = 0; itr < NUM_BUFS; itr++) {
 		
@@ -287,7 +266,7 @@ unsigned char* validate_Rx_Msg(void) {
 		
 		// Turn on the LED.
 		GPIOF->DATA |= 0x1UL << 3;
-		for (j = 0; j < 0xFFFF; j++);
+		for (itr = 0; itr < 0xFFFFF; itr++);
 		GPIOF->DATA &= ~(0x1UL << 3);
 		run_status = 0;
 		return rx_buffer;
@@ -339,7 +318,6 @@ void buffer_Init(void) {
 // Retrieve available buffer...
 struct buffer* get_buffer(void) {
 	
-	uint32_t itr;
 	buf_ptr = buf;
 	// Find free buffer...
 	for (itr = 0; itr < NUM_BUFS; itr++, buf_ptr++) {
@@ -356,12 +334,10 @@ struct buffer* get_buffer(void) {
 // Free buffer back to the pool...
 void release_buffer(struct buffer * a_buffer) {
 	
-	uint32_t index;
-	
 	a_buffer->isUsed = 0;
 	
-	for (index = 0; index < BUF_SIZE; index++) {
-		a_buffer->text[index] = '\0';
+	for (itr = 0; itr < BUF_SIZE; itr++) {
+		a_buffer->text[itr] = '\0';
 	}
 }
 

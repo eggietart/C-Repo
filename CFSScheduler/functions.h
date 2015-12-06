@@ -14,6 +14,7 @@ struct buf_element {
 	int		byte_count;
 };
 
+// Process Information
 struct task_struct {
 	int pid;				// Process ID
 	int static_prio;		// Static Priority
@@ -28,12 +29,13 @@ struct task_struct {
 int nBuffers;
 int in_item;
 int out_item;
-struct buf_element item[100];
 int c_totalBytesRead;
-
 int thread_finished;
 int shmid;
 
+struct buf_element item[100];
+
+// Semaphores...
 int sem_S_id;	// Semaphore S - Buffer
 int sem_N_id;	// Semaphore N - Produced Items
 int sem_E_id;	// Semaphore E - Empty Item
@@ -45,12 +47,15 @@ void del_semvalue(int sem_id);
 int sem_wait(int sem_id);
 int sem_signal(int sem_id);
 
+// Threaded Functions
 void *consumer_function(void *arg);
 void *producer_function(void *arg);
 void *process_balancer_function(void *arg);
 
+// Producer/Consumer Functions
 int writeItem(char text[], int count, FILE *in);
 int readItem(FILE* out);
 
+// Cleaning...
 int init_all(void);
 int clean_all(void);

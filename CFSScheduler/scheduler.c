@@ -7,14 +7,6 @@
 #include "functions.h"
 
 int main() {
-    int res, j;
-    pthread_t a_thread;
-    void *thread_result;
-    pthread_attr_t thread_attr;
-
-    int max_priority;
-    int min_priority;
-    struct sched_param scheduling_value;
 
     in_item = 0;
     out_item = 0;
@@ -24,54 +16,9 @@ int main() {
 
     init_all();
 
-    res = pthread_attr_init(&thread_attr);
-    if (res != 0) {
-        perror("Attribute creation failed");
-        exit(EXIT_FAILURE);
-    }
-
-    res = pthread_attr_setschedpolicy(&thread_attr, SCHED_RR);
-    if (res != 0) {
-        perror("Setting schedpolicy failed");
-        exit(EXIT_FAILURE);
-    }
-
-    res = pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
-    if (res != 0) {
-        perror("Setting detached attribute failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Creating Consumer threads...
-    for (j = 1; j <= 4; j++) {
-        
-        res = pthread_create(&a_thread, &thread_attr, consumer_function, (void *)&j);
-        if (res != 0) {
-            perror("Thread creation failed");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // Creating Producer thread...
-    res = pthread_create(&a_thread, &thread_attr, producer_function, (void *)"1");
-    if (res != 0) {
-        perror("Thread creation failed");
-        exit(EXIT_FAILURE);
-    }
-    max_priority = sched_get_priority_max(SCHED_RR);
-    min_priority = sched_get_priority_min(SCHED_RR);
-    scheduling_value.sched_priority = min_priority;
-    
-    res = pthread_attr_setschedparam(&thread_attr, &scheduling_value);
-    if (res != 0) {
-        perror("Setting schedpolicy failed");
-        exit(EXIT_FAILURE);
-    }
-    
-    (void)pthread_attr_destroy(&thread_attr);
-    while(!thread_finished) {
+    // Waiting for the producer thread to finish...
+    while(!thread_finished)
         sleep(1);
-    }
 
     clean_all();
 
@@ -79,19 +26,17 @@ int main() {
 }
 
 void *consumer_function(void *arg) {
-    printf("This is a consumer thread. Argument was %u\n", pthread_self());
-    sleep(4);
 
     int bytesRead;
-    
     char str_pid[16];
     char out_name[256];
-
     FILE *out;
     
-    c_totalBytesRead = 0;
     bytesRead = 0;
 
+    printf("This is a consumer thread. Argument was %u\n", pthread_self());
+    sleep(4);
+    
     // Individual output files are created for each consumer alive
     sprintf(str_pid, "%u", pthread_self());
 
@@ -121,15 +66,17 @@ void *consumer_function(void *arg) {
 }
 
 void *producer_function(void *arg) {
-    printf("This is a producer thread. Argument was %u\n", pthread_self());
-    sleep(4);
+    
     // Variable initialization
     int p_totalBytesRead;
     char str[128];
+    FILE *in;
+
     p_totalBytesRead = 0;
 
-    // Opening input file...
-    FILE *in;
+    printf("This is a producer thread. Argument was %u\n", pthread_self());
+    sleep(4);
+
     in = fopen("inputfile.txt","r");
 
     if (in == NULL) {
@@ -161,7 +108,7 @@ int writeItem(char text[], int count, FILE *in)
 {
     sem_wait(sem_E_id);
     sem_wait(sem_S_id);
-    printf("%d\n", in_item);
+    
     strcpy(item[in_item].text, text);
     item[in_item].byte_count = count;
 
@@ -172,6 +119,7 @@ int writeItem(char text[], int count, FILE *in)
 
     sem_signal(sem_S_id);
     sem_signal(sem_N_id);
+
     return 1;
 }
 
@@ -183,7 +131,7 @@ int readItem(FILE* out)
     sem_wait(sem_S_id);
     
     temp = item[out_item];
-    printf("%d\n", out_item);
+
     if (strcmp(temp.text, "EOF")) {
         fputs(temp.text, out);
     
@@ -191,22 +139,79 @@ int readItem(FILE* out)
             out_item = 0;
         else
             out_item++;
+        
+        sem_signal(sem_S_id);
+        sem_signal(sem_E_id);
     }
     else {
+        sem_signal(sem_S_id);
+        sem_signal(sem_N_id);
     }
-
-    sem_signal(sem_S_id);
-    sem_signal(sem_E_id);
 
     return temp.byte_count;
 }
 
 int init_all(void)
 {
+    int res, j;
+    pthread_t a_thread;
+    void *thread_result;
+    pthread_attr_t thread_attr;
+
+    int max_priority;
+    int min_priority;
+    struct sched_param scheduling_value;
+
     // Initialize all semaphores...
     sem_S_id = init_sem((key_t)8000, 1);
     sem_N_id = init_sem((key_t)8001, 0);
     sem_E_id = init_sem((key_t)8002, nBuffers);
+
+    res = pthread_attr_init(&thread_attr);
+    if (res != 0) {
+        perror("Attribute Creation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    res = pthread_attr_setschedpolicy(&thread_attr, SCHED_RR);
+    if (res != 0) {
+        perror("Setting schedpolicy failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    res = pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
+    if (res != 0) {
+        perror("Setting detached attribute failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Creating Consumer threads...
+    for (j = 1; j <= 4; j++) {
+        
+        res = pthread_create(&a_thread, &thread_attr, consumer_function, (void *)&j);
+        if (res != 0) {
+            perror("Consumer thread creation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Creating Producer thread...
+    res = pthread_create(&a_thread, &thread_attr, producer_function, (void *)"1");
+    if (res != 0) {
+        perror("Producer thread creation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    max_priority = sched_get_priority_max(SCHED_RR);
+    min_priority = sched_get_priority_min(SCHED_RR);
+    scheduling_value.sched_priority = min_priority;
+    
+    res = pthread_attr_setschedparam(&thread_attr, &scheduling_value);
+    if (res != 0) {
+        perror("Setting schedpolicy failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    (void)pthread_attr_destroy(&thread_attr);
 
     return 1;
 }

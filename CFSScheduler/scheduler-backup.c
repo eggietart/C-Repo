@@ -22,7 +22,10 @@ int main() {
     c_totalBytesRead = 0;
     nBuffers = 100;
 
-    init_all();
+    // Initialize all semaphores...
+    sem_S_id = init_sem((key_t)8000, 1);
+    sem_N_id = init_sem((key_t)8001, 0);
+    sem_E_id = init_sem((key_t)8002, 100);
 
     res = pthread_attr_init(&thread_attr);
     if (res != 0) {
@@ -73,7 +76,10 @@ int main() {
         sleep(1);
     }
 
-    clean_all();
+    // Delete semaphores...
+    del_semvalue(sem_S_id);
+    del_semvalue(sem_N_id);
+    del_semvalue(sem_E_id);
 
     exit(EXIT_SUCCESS);
 }
@@ -153,10 +159,6 @@ void *producer_function(void *arg) {
     pthread_exit(NULL);
 }
 
-void *process_balancer_function(void *arg) {
-
-}
-
 int writeItem(char text[], int count, FILE *in)
 {
     sem_wait(sem_E_id);
@@ -199,24 +201,4 @@ int readItem(FILE* out)
     sem_signal(sem_E_id);
 
     return temp.byte_count;
-}
-
-int init_all(void)
-{
-    // Initialize all semaphores...
-    sem_S_id = init_sem((key_t)8000, 1);
-    sem_N_id = init_sem((key_t)8001, 0);
-    sem_E_id = init_sem((key_t)8002, nBuffers);
-
-    return 1;
-}
-
-int clean_all(void)
-{
-    // Delete semaphores...
-    del_semvalue(sem_S_id);
-    del_semvalue(sem_N_id);
-    del_semvalue(sem_E_id);
-
-    return 1;
 }

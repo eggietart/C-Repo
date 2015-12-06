@@ -1,22 +1,15 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <string.h>
-
 #include "functions.h"
+
+const int NUM_THREADS = 6;
+const int NUM_PROCESSES = 20;
+const int NUM_CPUS = 4;
+
+const int DEFAULT_STATIC_PRIO = 120;
 
 int main() {
 
-    in_item = 0;
-    out_item = 0;
-    thread_finished = 0;
-    c_totalBytesRead = 0;
-    nBuffers = 100;
-
     init_all();
 
-    // Waiting for the producer thread to finish...
     while(!thread_finished)
         sleep(1);
 
@@ -27,40 +20,41 @@ int main() {
 
 void *consumer_function(void *arg) {
 
-    int bytesRead;
-    char str_pid[16];
-    char out_name[256];
-    FILE *out;
+    int my_id = *(int *)arg;
+    struct node *conductor;
+    struct task_struct *task;
+
+    printf("This is a consumer thread. Argument was %d\n", my_id);
     
-    bytesRead = 0;
+    // Initializating CPU's run queue
+    root[my_id] = (struct node *) malloc(sizeof(struct node));
+    root[my_id]->thread_id = pthread_self();
+    root[my_id]->next_node = 0;
 
-    printf("This is a consumer thread. Argument was %u\n", pthread_self());
-    sleep(4);
-    
-    // Individual output files are created for each consumer alive
-    sprintf(str_pid, "%u", pthread_self());
+    printf("Root Node created for Consumer %d with pthread_id = %u.\n", my_id, pthread_self());
 
-    strcpy(out_name, "outputfile");
-    strcat(out_name, "-");
-    strcat(out_name, str_pid);
-    strcat(out_name, ".txt");
+    sleep(10);
 
-    out = fopen(out_name, "w");
+    while (root[my_id]->next_node != 0) {
+        
+        conductor = root[my_id]->next_node;
+        printf("C%d: Process Info: %d, %d, %d, %d, %d, %d, %d\n", 
+            my_id,
+            conductor->task_info.pid,
+            conductor->task_info.static_prio,
+            conductor->task_info.prio,
+            conductor->task_info.execution_time,
+            conductor->task_info.time_slice,
+            conductor->task_info.accu_time_slice,
+            conductor->task_info.last_cpu
+        );
 
-    while (bytesRead <= 128) {
-
-        bytesRead = readItem(out);
-        if (bytesRead <= 128) 
-            c_totalBytesRead = c_totalBytesRead + bytesRead;
-        //usleep(500000);
+        root[my_id]->next_node = conductor->next_node;
+        sleep(conductor->task_info.execution_time);
+        free(conductor);
     }
 
-    if (bytesRead == c_totalBytesRead)
-        printf("It matches! Total characters: %d\n", c_totalBytesRead);
-    else
-        printf("Total bytes read does not match the total bytes written.\nRead: %d\nWritten: %d\n", c_totalBytesRead, bytesRead);
-
-    fclose(out);
+    free(root[my_id]);
     //thread_finished = 1;
     pthread_exit(NULL);
 }
@@ -68,54 +62,84 @@ void *consumer_function(void *arg) {
 void *producer_function(void *arg) {
     
     // Variable initialization
-    int p_totalBytesRead;
-    char str[128];
-    FILE *in;
+    int itr, ps_itr;
+    struct node *conductor;
+    struct task_struct *task;
 
-    p_totalBytesRead = 0;
+    ps_itr = 0;
+    srand(time(NULL));
 
     printf("This is a producer thread. Argument was %u\n", pthread_self());
-    sleep(4);
+    sleep(5);
 
-    in = fopen("inputfile.txt","r");
+    for (itr = 0; itr < NUM_PROCESSES; itr++) {
 
-    if (in == NULL) {
-        fprintf(stderr, "Failed to open inputfile.txt.\n");
-        exit(EXIT_FAILURE);
+        // Creating process information struct...
+        task = (struct task_struct *) malloc(sizeof(struct task_struct));
+        task->pid = itr;
+        task->static_prio = DEFAULT_STATIC_PRIO;
+        task->prio = DEFAULT_STATIC_PRIO;
+        task->execution_time = 5 + rand() / (RAND_MAX / (50 - 5 + 1) + 1);
+        task->time_slice = 20;
+        task->accu_time_slice = 0;
+        task->last_cpu = ps_itr;
+
+        conductor = root[ps_itr];
+
+        // Find the last node...
+        while (conductor->next_node != 0) {
+            conductor = conductor->next_node;
+        }
+
+        // Add process information into the run queue...
+        conductor->next_node = (struct node *) malloc(sizeof(struct node));
+        conductor = conductor->next_node;
+
+        if (conductor == 0) {
+            printf("Out of memory.\n");
+            pthread_exit(NULL);
+        }
+        else {
+            conductor->thread_id = root[ps_itr]->thread_id;
+            conductor->task_info = *task;
+            conductor->next_node = 0;
+        }
+
+        // Priting out created process information...
+        printf("P: Process Info: %d, %d, %d, %d, %d, %d, %d\n", 
+            conductor->task_info.pid,
+            conductor->task_info.static_prio,
+            conductor->task_info.prio,
+            conductor->task_info.execution_time,
+            conductor->task_info.time_slice,
+            conductor->task_info.accu_time_slice,
+            conductor->task_info.last_cpu
+        );
+
+        ps_itr++;
+        ps_itr = ps_itr % 4;
     }
 
-    // Reading input file, 128 bytes at a time...
-    while (fgets(str, 128, in) != NULL) {
-
-        writeItem(str, strlen(str), in);
-        p_totalBytesRead = p_totalBytesRead + strlen(str);
-        //sleep(1);
-    }
-
-    writeItem("EOF\0", p_totalBytesRead, in);
-
-    fclose(in);
-    sleep(20);
+    sleep(180);
     thread_finished = 1;
     pthread_exit(NULL);
 }
 
 void *process_balancer_function(void *arg) {
 
+    printf("This is a process balancer thread. Argument was %u\n", pthread_self());
+    sleep(4);
+    
+    while (!thread_finished) {
+        printf("Balancing processes...\n");
+        sleep(3);
+    }
 }
 
 int writeItem(char text[], int count, FILE *in)
 {
     sem_wait(sem_E_id);
     sem_wait(sem_S_id);
-    
-    strcpy(item[in_item].text, text);
-    item[in_item].byte_count = count;
-
-    if (in_item == 99)
-        in_item = 0;
-    else
-        in_item++;
 
     sem_signal(sem_S_id);
     sem_signal(sem_N_id);
@@ -125,42 +149,31 @@ int writeItem(char text[], int count, FILE *in)
 
 int readItem(FILE* out)
 {
-    struct buf_element temp;
-
     sem_wait(sem_N_id);
     sem_wait(sem_S_id);
-    
-    temp = item[out_item];
-
-    if (strcmp(temp.text, "EOF")) {
-        fputs(temp.text, out);
-    
-        if (out_item == 99)
-            out_item = 0;
-        else
-            out_item++;
         
-        sem_signal(sem_S_id);
-        sem_signal(sem_E_id);
-    }
-    else {
-        sem_signal(sem_S_id);
-        sem_signal(sem_N_id);
-    }
+    sem_signal(sem_S_id);
+    sem_signal(sem_E_id);
 
-    return temp.byte_count;
+    return 1;
 }
 
 int init_all(void)
 {
     int res, j;
-    pthread_t a_thread;
+    pthread_t a_thread[NUM_THREADS];
     void *thread_result;
     pthread_attr_t thread_attr;
 
     int max_priority;
     int min_priority;
     struct sched_param scheduling_value;
+
+    in_item = 0;
+    out_item = 0;
+    thread_finished = 0;
+    c_totalBytesRead = 0;
+    nBuffers = 100;
 
     // Initialize all semaphores...
     sem_S_id = init_sem((key_t)8000, 1);
@@ -186,21 +199,30 @@ int init_all(void)
     }
 
     // Creating Consumer threads...
-    for (j = 1; j <= 4; j++) {
+    for (j = 0; j < 4; j++) {
         
-        res = pthread_create(&a_thread, &thread_attr, consumer_function, (void *)&j);
+        res = pthread_create(&(a_thread[j]), &thread_attr, consumer_function, (void *)&j);
         if (res != 0) {
             perror("Consumer thread creation failed.\n");
             exit(EXIT_FAILURE);
         }
+        sleep(1);
     }
 
     // Creating Producer thread...
-    res = pthread_create(&a_thread, &thread_attr, producer_function, (void *)"1");
+    res = pthread_create(&(a_thread[4]), &thread_attr, producer_function, (void *)"4");
     if (res != 0) {
         perror("Producer thread creation failed.\n");
         exit(EXIT_FAILURE);
     }
+
+    // Creating Process Balancer thread...
+    res = pthread_create(&(a_thread[5]), &thread_attr, process_balancer_function, (void *)"5");
+    if (res != 0) {
+        perror("Process Balancer thread creation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
     max_priority = sched_get_priority_max(SCHED_RR);
     min_priority = sched_get_priority_min(SCHED_RR);
     scheduling_value.sched_priority = min_priority;

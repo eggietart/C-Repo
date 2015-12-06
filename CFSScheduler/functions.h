@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #include <sys/sem.h>
 #include <sys/shm.h>
@@ -16,13 +17,19 @@ struct buf_element {
 
 // Process Information
 struct task_struct {
-	int pid;				// Process ID
-	int static_prio;		// Static Priority
+	int pid;				// Process ID --> manually generated
+	int static_prio;		// Static Priority --> 1-130
 	int prio;				// Dynamic Priority
-	int execution_time;		// Execution Time
-	int time_slice;			// Time Slice
-	int accu_time_slice;	// Accumulated Time Slice
-	int last_cpu;			// Last CPU that the process last ran
+	int execution_time;		// Execution Time --> in s
+	int time_slice;			// Time Slice --> in ms
+	int accu_time_slice;	// Accumulated Time Slice --> in ms
+	int last_cpu;			// Last CPU that the process last ran --> thread id
+};
+
+struct node {
+	pthread_t thread_id;
+	struct task_struct task_info;
+	struct node *next_node;
 };
 
 // Variables...
@@ -31,9 +38,9 @@ int in_item;
 int out_item;
 int c_totalBytesRead;
 int thread_finished;
-int shmid;
 
 struct buf_element item[100];
+struct node *root[4];			// 4 Pointers to Run Queues --> 1/CPU
 
 // Semaphores...
 int sem_S_id;	// Semaphore S - Buffer

@@ -185,7 +185,7 @@ int readItem(FILE* out)
     sem_wait(sem_S_id);
     
     temp = item[out_item];
-    printf("%d\n", out_item);
+    
     if (strcmp(temp.text, "EOF")) {
         fputs(temp.text, out);
     
@@ -193,12 +193,14 @@ int readItem(FILE* out)
             out_item = 0;
         else
             out_item++;
+        
+        sem_signal(sem_S_id);
+        sem_signal(sem_E_id);
     }
     else {
+        sem_signal(sem_S_id);
+        sem_signal(sem_N_id);
     }
-
-    sem_signal(sem_S_id);
-    sem_signal(sem_E_id);
 
     return temp.byte_count;
 }

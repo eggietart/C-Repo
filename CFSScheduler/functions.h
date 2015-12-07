@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <time.h>
 
 #include <sys/sem.h>
 #include <sys/shm.h>
@@ -17,13 +18,17 @@ struct buf_element {
 
 // Process Information
 struct task_struct {
-	int pid;				// Process ID --> manually generated
-	int static_prio;		// Static Priority --> 1-130
-	int prio;				// Dynamic Priority
-	int execution_time;		// Execution Time --> in s
-	int time_slice;			// Time Slice --> in ms
-	int accu_time_slice;	// Accumulated Time Slice --> in ms
-	int last_cpu;			// Last CPU that the process last ran --> thread id
+	int pid;					// Process ID --> manually generated
+	int sched_type;				// Scheduling Type --> 1: FIFO, 2: RR, 3: NORMAL
+	int static_prio;			// Static Priority --> 1-130
+	int prio;					// Dynamic Priority
+	int execution_time;			// Execution Time --> in ms
+	int time_slice;				// Time Slice --> in ms
+	int accu_time_slice;		// Accumulated Time Slice --> in ms
+	int accu_sleep_time;		// Accumulated Sleep Time -> in ms
+	int sleep_avg;				// Sleep average -> in ms
+	int last_cpu;				// Last CPU that the process last ran --> thread id
+	struct timeval time_slept;	// The time when the process went to sleep
 };
 
 struct node {
@@ -59,9 +64,11 @@ void *consumer_function(void *arg);
 void *producer_function(void *arg);
 void *process_balancer_function(void *arg);
 
-// Producer/Consumer Functions
-int writeItem(char text[], int count, FILE *in);
-int readItem(FILE* out);
+// Scheduling Functions
+int calculate_quantum(int static_p);
+int calculate_priority(int static_p, int sleep_average);
+int calculate_sleep_time(struct timeval sleep_t);
+int calculate_sleep_avg(int sleep_average, int time_slept, int qt);
 
 // Cleaning...
 int init_all(void);
